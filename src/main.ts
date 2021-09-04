@@ -161,7 +161,7 @@ export const getChangelog = async (
             };
         });
 
-        parsedCommitMsg.extra.issues = issues.filter(issue => issue.commit_id === commit.sha).map(issue => ({ number: issue.id, url: issue.url}))
+        parsedCommitMsg.extra.issues = issues.filter(issue => issue.commit_id === commit.sha && issue.issue).map(issue => ({ number: issue.issue!.number, url: issue.issue!.html_url}))
 
         parsedCommitMsg.extra.breakingChange = isBreakingChange({
             body: parsedCommitMsg.body,

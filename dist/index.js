@@ -68,9 +68,6 @@ const getFormattedChangelogEntry = (parsedCommit) => {
     const author = (_a = parsedCommit.extra.commit.commit.author) === null || _a === void 0 ? void 0 : _a.name;
     let prString = '';
     prString = parsedCommit.extra.pullRequests.reduce((acc, pr) => {
-        // e.g. #1
-        // e.g. #1,#2
-        // e.g. ''
         if (acc) {
             acc += ',';
         }
@@ -302,7 +299,7 @@ const getChangelog = (client, owner, repo, commits) => __awaiter(void 0, void 0,
                 url: pr.html_url,
             };
         });
-        parsedCommitMsg.extra.issues = issues.filter(issue => issue.commit_id === commit.sha).map(issue => ({ number: issue.id, url: issue.url }));
+        parsedCommitMsg.extra.issues = issues.filter(issue => issue.commit_id === commit.sha && issue.issue).map(issue => ({ number: issue.issue.number, url: issue.issue.html_url }));
         parsedCommitMsg.extra.breakingChange = (0, changelog_1.isBreakingChange)({
             body: parsedCommitMsg.body,
             footer: parsedCommitMsg.footer,
