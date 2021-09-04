@@ -149,6 +149,95 @@ exports.getChangelogOptions = getChangelogOptions;
 
 /***/ }),
 
+/***/ 5157:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.getClosedIssues = void 0;
+const core = __importStar(__nccwpck_require__(2186));
+function getClosedIssues(client, repo, owner, since, after = null) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const returnList = [];
+        core.debug(`Making graphql request to: ${owner}/${repo} since: ${since === null || since === void 0 ? void 0 : since.toISOString()} after: ${after}`);
+        const response = yield client.graphql(`query($repo: String!, $owner: String!, $since: DateTime, $after: String) { 
+  repository(owner: $owner, name: $repo) {
+    issues(first: 100, after: $after, filterBy: {states: [CLOSED], since: $since} ) {
+      pageInfo {
+        endCursor,
+        hasNextPage,
+      }
+      nodes {
+        number,
+        url,
+        timelineItems(itemTypes: [CLOSED_EVENT], last: 1) {
+          nodes {
+            ... on ClosedEvent {
+              closer {
+                ... on Commit {
+                    oid
+                }
+                ... on PullRequest {
+                    number
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}`, {
+            repo: repo,
+            owner: owner,
+            since: since != null ? since.toISOString() : null,
+            after: after,
+        });
+        core.debug(`Retrieved from graphql endpoint: ${JSON.stringify(response)}`);
+        returnList.push(...response.repository.issues.nodes
+            .filter((node) => node.timelineItems.nodes[0].closer !== null)
+            .map((node) => ({ issue: { number: node.number, url: node.url }, oid: node.timelineItems.nodes[0].closer.oid, prNumber: node.timelineItems.nodes[0].closer.number })));
+        let hasNextPage = response.repository.issues.pageInfo.hasNextPage;
+        if (hasNextPage) {
+            returnList.push(...(yield getClosedIssues(client, repo, owner, since, response.repository.issues.pageInfo.endCursor)));
+        }
+        return returnList;
+    });
+}
+exports.getClosedIssues = getClosedIssues;
+
+
+/***/ }),
+
 /***/ 3109:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -197,6 +286,7 @@ const valid_1 = __importDefault(__nccwpck_require__(9601));
 const rcompare_1 = __importDefault(__nccwpck_require__(6417));
 const lt_1 = __importDefault(__nccwpck_require__(194));
 const changelog_1 = __nccwpck_require__(1082);
+const graphql_1 = __nccwpck_require__(5157);
 function parseArguments() {
     const token = core.getInput("token", { required: true });
     const draft = core.getBooleanInput("draft");
@@ -208,9 +298,9 @@ function parseArguments() {
 const searchForPreviousReleaseTag = (client, currentReleaseTag, tagInfo) => __awaiter(void 0, void 0, void 0, function* () {
     const validSemver = (0, valid_1.default)(currentReleaseTag);
     if (!validSemver) {
-        throw new Error(`The parameter "automatic_release_tag" was not set and the current tag "${currentReleaseTag}" does not appear to conform to semantic versioning.`);
+        throw new Error(`The the current tag "${currentReleaseTag}" does not appear to conform to semantic versioning.`);
     }
-    const listTagsOptions = client.rest.repos.listTags.endpoint.merge(tagInfo);
+    const listTagsOptions = client.rest.repos.listTags.endpoint.merge(Object.assign(Object.assign({}, tagInfo), { per_page: 100 }));
     const tl = yield client.paginate(listTagsOptions);
     const tagList = tl
         .map((tag) => {
@@ -220,10 +310,10 @@ const searchForPreviousReleaseTag = (client, currentReleaseTag, tagInfo) => __aw
     })
         .filter((tag) => tag.semverTag !== null)
         .sort((a, b) => (0, rcompare_1.default)(a.semverTag, b.semverTag));
-    let previousReleaseTag = '';
+    let previousReleaseTag = null;
     for (const tag of tagList) {
         if ((0, lt_1.default)(tag.semverTag, currentReleaseTag)) {
-            previousReleaseTag = tag.name;
+            previousReleaseTag = tag;
             break;
         }
     }
@@ -262,13 +352,22 @@ const getCommitsSinceRelease = (client, tagInfo, currentSha) => __awaiter(void 0
     core.endGroup();
     return commits;
 });
-const getChangelog = (client, owner, repo, commits) => __awaiter(void 0, void 0, void 0, function* () {
+const getChangelog = (client, owner, repo, previousReleaseTag, commits) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
     const parsedCommits = [];
     core.startGroup('Generating changelog');
-    const issues = (yield client.rest.issues.listEventsForRepo({
-        owner: owner,
-        repo: repo
-    })).data.filter(issue => issue.commit_id && issue.commit_url);
+    let since = null;
+    if (previousReleaseTag !== null) {
+        const commit = yield client.rest.repos.getCommit({
+            owner: owner,
+            repo: repo,
+            ref: previousReleaseTag.commit.sha,
+        });
+        if ((_a = commit.data.commit.committer) === null || _a === void 0 ? void 0 : _a.date) {
+            since = new Date(commit.data.commit.committer.date);
+        }
+    }
+    const closedIssues = yield (0, graphql_1.getClosedIssues)(client, repo, owner, since);
     for (const commit of commits) {
         core.debug(`Processing commit: ${JSON.stringify(commit)}`);
         core.debug(`Searching for pull requests associated with commit ${commit.sha}`);
@@ -299,7 +398,8 @@ const getChangelog = (client, owner, repo, commits) => __awaiter(void 0, void 0,
                 url: pr.html_url,
             };
         });
-        parsedCommitMsg.extra.issues = issues.filter(issue => issue.commit_id === commit.sha && issue.issue).map(issue => ({ number: issue.issue.number, url: issue.issue.html_url }));
+        parsedCommitMsg.extra.issues = closedIssues.filter(issue => issue.oid === commit.sha || parsedCommitMsg.extra.pullRequests.findIndex(pr => pr.number === issue.prNumber) > -1).map(issue => issue.issue);
+        // parsedCommitMsg.extra.issues = events.filter(event => event.commit_id === commit.sha).map(event => ({ number: event.issue.number, url: event.issue.html_url}))
         parsedCommitMsg.extra.breakingChange = (0, changelog_1.isBreakingChange)({
             body: parsedCommitMsg.body,
             footer: parsedCommitMsg.footer,
@@ -331,7 +431,7 @@ function run() {
             });
             core.startGroup("Determining release tags");
             const releaseTag = (0, utils_1.parseGitTagRef)(context.ref);
-            const previewReleaseTag = yield searchForPreviousReleaseTag(client, releaseTag, {
+            const previousReleaseTag = yield searchForPreviousReleaseTag(client, releaseTag, {
                 owner: context.repo.owner,
                 repo: context.repo.repo,
             });
@@ -339,9 +439,9 @@ function run() {
             const commitsSinceRelease = yield getCommitsSinceRelease(client, {
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                ref: `tags/${previewReleaseTag}`,
+                ref: `tags/${previousReleaseTag == null ? '' : previousReleaseTag.name}`,
             }, context.sha);
-            const changelog = yield (0, exports.getChangelog)(client, context.repo.owner, context.repo.repo, commitsSinceRelease);
+            const changelog = yield (0, exports.getChangelog)(client, context.repo.owner, context.repo.repo, previousReleaseTag, commitsSinceRelease);
             core.startGroup(`Generating new GitHub release for the "${releaseTag}" tag`);
             core.info('Creating new release');
             const releaseUploadUrl = yield client.rest.repos.createRelease({

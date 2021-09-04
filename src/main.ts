@@ -10,6 +10,7 @@ import semverValid from "semver/functions/valid"
 import semverRcompare from "semver/functions/rcompare"
 import semverLt from "semver/functions/lt"
 import {generateChangelogFromParsedCommits, getChangelogOptions, isBreakingChange, ParsedCommits} from "./changelog"
+import {getClosedIssues} from "./graphql"
 
 type Arguments = {
     token: string;
@@ -28,23 +29,30 @@ function parseArguments(): Arguments {
     return { token, draft, preRelease, title, files};
 }
 
+type ExtendedTag = components["schemas"]["tag"] & {
+    semverTag: string;
+}
+
 const searchForPreviousReleaseTag = async (
     client: InstanceType<typeof GitHub>,
     currentReleaseTag: string,
     tagInfo: { owner: string, repo: string },
-): Promise<string> => {
+): Promise<ExtendedTag | null> => {
     const validSemver = semverValid(currentReleaseTag);
     if (!validSemver) {
         throw new Error(
-            `The parameter "automatic_release_tag" was not set and the current tag "${currentReleaseTag}" does not appear to conform to semantic versioning.`,
+            `The the current tag "${currentReleaseTag}" does not appear to conform to semantic versioning.`,
         );
     }
 
-    const listTagsOptions = client.rest.repos.listTags.endpoint.merge(tagInfo);
-    const tl = await client.paginate(listTagsOptions);
+    const listTagsOptions = client.rest.repos.listTags.endpoint.merge({
+        ...tagInfo,
+        per_page: 100
+    });
+    const tl = await client.paginate<components["schemas"]["tag"]>(listTagsOptions);
 
     const tagList = tl
-        .map((tag: any) => {
+        .map((tag) => {
             core.debug(`Currently processing tag ${tag.name}`);
             const t = semverValid(tag.name);
             return {
@@ -53,12 +61,12 @@ const searchForPreviousReleaseTag = async (
             };
         })
         .filter((tag) => tag.semverTag !== null)
-        .sort((a, b) => semverRcompare(a.semverTag, b.semverTag));
+        .sort((a, b) => semverRcompare(a.semverTag!, b.semverTag!)) as ExtendedTag[];
 
-    let previousReleaseTag = '';
+    let previousReleaseTag = null;
     for (const tag of tagList) {
         if (semverLt(tag.semverTag, currentReleaseTag)) {
-            previousReleaseTag = tag.name;
+            previousReleaseTag = tag;
             break;
         }
     }
@@ -68,13 +76,13 @@ const searchForPreviousReleaseTag = async (
 
 const getCommitsSinceRelease = async (
     client: InstanceType<typeof GitHub>,
-    tagInfo: { owner: string, repo: string, ref: string },
+    tagInfo: { owner: components["parameters"]["owner"], repo: components["parameters"]["repo"], ref: string },
     currentSha: string,
 ): Promise<components["schemas"]["commit"][]> => {
     core.startGroup('Retrieving commit history');
 
     core.info('Determining state of the previous release');
-    let previousReleaseRef = '' as string;
+    let previousReleaseRef = '';
     core.info(`Searching for SHA corresponding to previous "${tagInfo.ref}" release tag`);
     try {
         const resp = await client.rest.git.getRef(tagInfo);
@@ -114,15 +122,25 @@ export const getChangelog = async (
     client: InstanceType<typeof GitHub>,
     owner: string,
     repo: string,
+    previousReleaseTag: ExtendedTag | null,
     commits: components["schemas"]["commit"][],
 ): Promise<string> => {
     const parsedCommits: ParsedCommits[] = [];
     core.startGroup('Generating changelog');
 
-    const issues = (await client.rest.issues.listEventsForRepo({
-        owner: owner,
-        repo: repo
-    })).data.filter(issue => issue.commit_id && issue.commit_url)
+    let since: Date | null = null;
+    if (previousReleaseTag !== null) {
+        const commit = await client.rest.repos.getCommit({
+            owner: owner,
+            repo: repo,
+            ref: previousReleaseTag.commit.sha,
+        })
+        if (commit.data.commit.committer?.date) {
+            since = new Date(commit.data.commit.committer.date)
+        }
+    }
+
+    const closedIssues = await getClosedIssues(client, repo, owner, since);
 
     for (const commit of commits) {
         core.debug(`Processing commit: ${JSON.stringify(commit)}`);
@@ -161,7 +179,9 @@ export const getChangelog = async (
             };
         });
 
-        parsedCommitMsg.extra.issues = issues.filter(issue => issue.commit_id === commit.sha && issue.issue).map(issue => ({ number: issue.issue!.number, url: issue.issue!.html_url}))
+        parsedCommitMsg.extra.issues = closedIssues.filter(issue => issue.oid === commit.sha || parsedCommitMsg.extra.pullRequests.findIndex(pr => pr.number === issue.prNumber) > -1).map(issue => issue.issue)
+
+        // parsedCommitMsg.extra.issues = events.filter(event => event.commit_id === commit.sha).map(event => ({ number: event.issue.number, url: event.issue.html_url}))
 
         parsedCommitMsg.extra.breakingChange = isBreakingChange({
             body: parsedCommitMsg.body,
@@ -200,7 +220,7 @@ async function run(): Promise<void> {
         core.startGroup("Determining release tags")
         const releaseTag = parseGitTagRef(context.ref);
 
-        const previewReleaseTag = await searchForPreviousReleaseTag(client, releaseTag, {
+        const previousReleaseTag = await searchForPreviousReleaseTag(client, releaseTag, {
             owner: context.repo.owner,
             repo: context.repo.repo,
         })
@@ -209,10 +229,10 @@ async function run(): Promise<void> {
         const commitsSinceRelease = await getCommitsSinceRelease(client, {
             owner: context.repo.owner,
             repo: context.repo.repo,
-            ref: `tags/${previewReleaseTag}`,
+            ref: `tags/${previousReleaseTag == null ? '' : previousReleaseTag.name}`,
         }, context.sha);
 
-        const changelog = await getChangelog(client, context.repo.owner, context.repo.repo, commitsSinceRelease);
+        const changelog = await getChangelog(client, context.repo.owner, context.repo.repo, previousReleaseTag, commitsSinceRelease);
 
         core.startGroup(`Generating new GitHub release for the "${releaseTag}" tag`);
 
