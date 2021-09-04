@@ -22,17 +22,17 @@ type ParsedCommitsExtra = {
 };
 
 enum ConventionalCommitTypes {
-    feat = 'Features',
-    fix = 'Bug Fixes',
-    docs = 'Documentation',
-    style = 'Styles',
-    refactor = 'Code Refactoring',
-    perf = 'Performance Improvements',
-    test = 'Tests',
-    build = 'Builds',
-    ci = 'Continuous Integration',
-    chore = 'Chores',
-    revert = 'Reverts',
+    feat = ':rocket: Features',
+    fix = ':wrench: Bug Fixes',
+    docs = ':book: Documentation',
+    style = ':crown: Styles',
+    refactor = ':twisted_rightwards_arrows: Code Refactoring',
+    perf = ':bangbang: Performance Improvements',
+    test = ':test_tube: Tests',
+    build = ':hammer: Builds',
+    ci = ':repeat: Continuous Integration',
+    chore = ':broom: Chores',
+    revert = ':leftwards_arrow_with_hook: Reverts',
 }
 
 export type ParsedCommits = {
