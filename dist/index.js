@@ -64,7 +64,6 @@ var ConventionalCommitTypes;
 const getFormattedChangelogEntry = (parsedCommit) => {
     var _a;
     let entry = '';
-    const url = parsedCommit.extra.commit.html_url;
     const sha = (0, exports.getShortSHA)(parsedCommit.extra.commit.sha);
     const author = (_a = parsedCommit.extra.commit.commit.author) === null || _a === void 0 ? void 0 : _a.name;
     let prString = '';
@@ -75,15 +74,31 @@ const getFormattedChangelogEntry = (parsedCommit) => {
         if (acc) {
             acc += ',';
         }
+        else {
+            acc += '(';
+        }
         return `${acc}[#${pr.number}](${pr.url})`;
     }, '');
     if (prString) {
-        prString = ' ' + prString;
+        prString = ' ' + prString + ')';
+    }
+    let issueString = '';
+    issueString = parsedCommit.extra.issues.reduce((acc, issue) => {
+        if (acc) {
+            acc += ', ';
+        }
+        else {
+            acc += 'closes ';
+        }
+        return `${acc}[#${issue.number}](${issue.url})`;
+    }, '');
+    if (issueString) {
+        issueString = ', ' + issueString;
     }
     entry = `- ${sha}: ${parsedCommit.header} (${author})${prString}`;
     if (parsedCommit.type) {
         const scopeStr = parsedCommit.scope ? `**${parsedCommit.scope}**: ` : '';
-        entry = `- ${scopeStr}${parsedCommit.subject} - ${sha} (${prString})`;
+        entry = `- ${scopeStr}${parsedCommit.subject} - ${prString} ${sha}${issueString}`;
     }
     return entry;
 };
@@ -253,6 +268,10 @@ const getCommitsSinceRelease = (client, tagInfo, currentSha) => __awaiter(void 0
 const getChangelog = (client, owner, repo, commits) => __awaiter(void 0, void 0, void 0, function* () {
     const parsedCommits = [];
     core.startGroup('Generating changelog');
+    const issues = (yield client.rest.issues.listEventsForRepo({
+        owner: owner,
+        repo: repo
+    })).data.filter(issue => issue.commit_id && issue.commit_url);
     for (const commit of commits) {
         core.debug(`Processing commit: ${JSON.stringify(commit)}`);
         core.debug(`Searching for pull requests associated with commit ${commit.sha}`);
@@ -274,6 +293,7 @@ const getChangelog = (client, owner, repo, commits) => __awaiter(void 0, void 0,
         parsedCommitMsg.extra = {
             commit: commit,
             pullRequests: [],
+            issues: [],
             breakingChange: false,
         };
         parsedCommitMsg.extra.pullRequests = pulls.data.map((pr) => {
@@ -282,6 +302,7 @@ const getChangelog = (client, owner, repo, commits) => __awaiter(void 0, void 0,
                 url: pr.html_url,
             };
         });
+        parsedCommitMsg.extra.issues = issues.filter(issue => issue.commit_id === commit.sha).map(issue => ({ number: issue.id, url: issue.url }));
         parsedCommitMsg.extra.breakingChange = (0, changelog_1.isBreakingChange)({
             body: parsedCommitMsg.body,
             footer: parsedCommitMsg.footer,

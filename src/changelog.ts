@@ -8,18 +8,13 @@ export const getShortSHA = (sha: string): string => {
     return sha.substring(0, coreAbbrev);
 };
 
-export type ParsedCommitsExtraCommit = components["schemas"]["commit"] & {
-    distinct: boolean;
-    id: string;
-    message: string;
-    timestamp: string;
-    tree_id: string;
-    url: string;
-};
-
 type ParsedCommitsExtra = {
-    commit: ParsedCommitsExtraCommit;
+    commit: components["schemas"]["commit"];
     pullRequests: {
+        number: number;
+        url: string;
+    }[];
+    issues: {
         number: number;
         url: string;
     }[];
@@ -68,7 +63,6 @@ export type ParsedCommits = {
 const getFormattedChangelogEntry = (parsedCommit: ParsedCommits): string => {
     let entry = '';
 
-    const url = parsedCommit.extra.commit.html_url;
     const sha = getShortSHA(parsedCommit.extra.commit.sha);
     const author = parsedCommit.extra.commit.commit.author?.name;
 
@@ -79,17 +73,32 @@ const getFormattedChangelogEntry = (parsedCommit: ParsedCommits): string => {
         // e.g. ''
         if (acc) {
             acc += ',';
+        } else {
+            acc += '('
         }
         return `${acc}[#${pr.number}](${pr.url})`;
     }, '');
     if (prString) {
-        prString = ' ' + prString;
+        prString = ' ' + prString + ')';
+    }
+
+    let issueString = '';
+    issueString = parsedCommit.extra.issues.reduce((acc, issue) => {
+        if (acc) {
+            acc +=', '
+        } else {
+            acc += 'closes '
+        }
+        return `${acc}[#${issue.number}](${issue.url})`;
+    }, '');
+    if (issueString) {
+        issueString = ', ' + issueString;
     }
 
     entry = `- ${sha}: ${parsedCommit.header} (${author})${prString}`;
     if (parsedCommit.type) {
         const scopeStr = parsedCommit.scope ? `**${parsedCommit.scope}**: ` : '';
-        entry = `- ${scopeStr}${parsedCommit.subject} - ${sha} (${prString})`;
+        entry = `- ${scopeStr}${parsedCommit.subject} - ${prString} ${sha}${issueString}`;
     }
 
     return entry;

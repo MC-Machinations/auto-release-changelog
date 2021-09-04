@@ -2,7 +2,7 @@ import * as core from "@actions/core";
 import * as github from "@actions/github";
 import {Context} from "@actions/github/lib/context"
 // @ts-ignore
-import {sync as commitParser} from "conventional-commits-parser";
+import {sync as commitParser} from "conventional-commits-parser"
 import {octokitLogger, parseGitTagRef} from "./utils"
 import {GitHub} from "@actions/github/lib/utils"
 import {components} from "@octokit/openapi-types"
@@ -119,6 +119,11 @@ export const getChangelog = async (
     const parsedCommits: ParsedCommits[] = [];
     core.startGroup('Generating changelog');
 
+    const issues = (await client.rest.issues.listEventsForRepo({
+        owner: owner,
+        repo: repo
+    })).data.filter(issue => issue.commit_id && issue.commit_url)
+
     for (const commit of commits) {
         core.debug(`Processing commit: ${JSON.stringify(commit)}`);
         core.debug(`Searching for pull requests associated with commit ${commit.sha}`);
@@ -127,12 +132,14 @@ export const getChangelog = async (
             repo: repo,
             commit_sha: commit.sha,
         });
+
+
         if (pulls.data.length) {
             core.info(`Found ${pulls.data.length} pull request(s) associated with commit ${commit.sha}`);
         }
 
         const clOptions = await getChangelogOptions();
-        const parsedCommitMsg = commitParser(commit.commit.message, clOptions);
+        const parsedCommitMsg: ParsedCommits = commitParser(commit.commit.message, clOptions);
 
         // istanbul ignore next
         if (parsedCommitMsg.merge) {
@@ -143,6 +150,7 @@ export const getChangelog = async (
         parsedCommitMsg.extra = {
             commit: commit,
             pullRequests: [],
+            issues: [],
             breakingChange: false,
         };
 
@@ -152,6 +160,8 @@ export const getChangelog = async (
                 url: pr.html_url,
             };
         });
+
+        parsedCommitMsg.extra.issues = issues.filter(issue => issue.commit_id === commit.sha).map(issue => ({ number: issue.id, url: issue.url}))
 
         parsedCommitMsg.extra.breakingChange = isBreakingChange({
             body: parsedCommitMsg.body,
