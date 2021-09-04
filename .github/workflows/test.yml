@@ -9,7 +9,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - name: Set tag name output
+        id: vars
+        run: echo ::set-output name=tag::${GITHUB_REF#refs/*/}
       - uses: ./
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          title: Test Project ${{ github.ref }}
+          title: Test Project ${{ setps.vars.outputs.tag }}
