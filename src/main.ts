@@ -201,7 +201,6 @@ async function run(): Promise<void> {
             repo: context.repo.repo,
             ref: `tags/${previewReleaseTag}`,
         }, context.sha);
-        core.debug(`Found ${commitsSinceRelease.length} commits`)
 
         const changelog = await getChangelog(client, context.repo.owner, context.repo.repo, commitsSinceRelease);
 
