@@ -60,6 +60,8 @@ export type ParsedCommits = {
     revert: boolean;
 };
 
+const PR_STRING_REGEX = new RegExp(".*(?=\\(#\\d+\\)\\s*$)", "m")
+
 const getFormattedChangelogEntry = (parsedCommit: ParsedCommits): string => {
     let entry = '';
 
@@ -92,14 +94,21 @@ const getFormattedChangelogEntry = (parsedCommit: ParsedCommits): string => {
         issueString = ', ' + issueString;
     }
 
-    entry = `- ${sha}: ${parsedCommit.header} (${author})${prString}`;
+    entry = `- ${sha}: ${removePrs(parsedCommit.header)} (${author})${prString}`;
     if (parsedCommit.type) {
         const scopeStr = parsedCommit.scope ? `**${parsedCommit.scope}**: ` : '';
-        entry = `- ${scopeStr}${parsedCommit.subject} ${prString} - ${sha}${issueString}`;
+        entry = `- ${scopeStr}${removePrs(parsedCommit.subject)} ${prString} - ${sha}${issueString}`;
     }
 
     return entry;
 };
+
+function removePrs(msg: string): string {
+    if (PR_STRING_REGEX.test(msg)) {
+        return msg.match(PR_STRING_REGEX)![0];
+    }
+    return msg;
+}
 
 export const generateChangelogFromParsedCommits = (parsedCommits: ParsedCommits[]): string => {
     let changelog = '';

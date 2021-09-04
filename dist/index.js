@@ -61,6 +61,7 @@ var ConventionalCommitTypes;
     ConventionalCommitTypes["chore"] = ":broom: Chores";
     ConventionalCommitTypes["revert"] = ":leftwards_arrow_with_hook: Reverts";
 })(ConventionalCommitTypes || (ConventionalCommitTypes = {}));
+const PR_STRING_REGEX = new RegExp(".*(?=\\(#\\d+\\)\\s*$)", "m");
 const getFormattedChangelogEntry = (parsedCommit) => {
     var _a;
     let entry = '';
@@ -92,13 +93,19 @@ const getFormattedChangelogEntry = (parsedCommit) => {
     if (issueString) {
         issueString = ', ' + issueString;
     }
-    entry = `- ${sha}: ${parsedCommit.header} (${author})${prString}`;
+    entry = `- ${sha}: ${removePrs(parsedCommit.header)} (${author})${prString}`;
     if (parsedCommit.type) {
         const scopeStr = parsedCommit.scope ? `**${parsedCommit.scope}**: ` : '';
-        entry = `- ${scopeStr}${parsedCommit.subject} ${prString} - ${sha}${issueString}`;
+        entry = `- ${scopeStr}${removePrs(parsedCommit.subject)} ${prString} - ${sha}${issueString}`;
     }
     return entry;
 };
+function removePrs(msg) {
+    if (PR_STRING_REGEX.test(msg)) {
+        return msg.match(PR_STRING_REGEX)[0];
+    }
+    return msg;
+}
 const generateChangelogFromParsedCommits = (parsedCommits) => {
     let changelog = '';
     // Breaking Changes
