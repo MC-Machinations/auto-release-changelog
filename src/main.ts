@@ -11,6 +11,9 @@ import semverRcompare from "semver/functions/rcompare"
 import semverLt from "semver/functions/lt"
 import {generateChangelogFromParsedCommits, getChangelogOptions, isBreakingChange, ParsedCommits} from "./changelog"
 import {getClosedIssues} from "./graphql"
+import globby from "globby"
+import path from "path"
+const fs = require("fs")
 
 type Arguments = {
     token: string;
@@ -237,7 +240,7 @@ async function run(): Promise<void> {
         core.startGroup(`Generating new GitHub release for the "${releaseTag}" tag`);
 
         core.info('Creating new release');
-        const releaseUploadUrl = await client.rest.repos.createRelease({
+        const release = await client.rest.repos.createRelease({
             owner: context.repo.owner,
             repo: context.repo.repo,
             tag_name: releaseTag,
@@ -248,7 +251,10 @@ async function run(): Promise<void> {
         });
         core.endGroup();
 
-        core.setOutput('upload_url', releaseUploadUrl);
+        await uploadReleaseArtifacts(client, context.repo.repo, context.repo.owner, release.data.id, args.files);
+
+        core.setOutput('upload_url', release.data.upload_url);
+        core.setOutput('release_id', release.data.id);
 
     } catch (error) {
         core.setFailed((error as Error).message);
@@ -256,3 +262,34 @@ async function run(): Promise<void> {
 }
 
 run();
+
+export async function uploadReleaseArtifacts(client: InstanceType<typeof GitHub>, repo: string, owner: string, releaseId: number, files: string[]): Promise<void> {
+    core.startGroup("Uploading release artifacts")
+    for (let file of files) {
+        const paths = await globby.globby(file);
+        if (paths.length === 0) {
+            core.warning(`${file} doesn't match any files`)
+        }
+
+        for (let filePath of paths) {
+            core.info(`Uploading: ${filePath}`)
+            const nameWithExt = path.basename(filePath);
+
+            try {
+                await client.rest.repos.uploadReleaseAsset({
+                    release_id: releaseId,
+                    headers: {
+                        "content-length": fs.lstatSync(filePath).size,
+                        "content-type": "application/octet-stream",
+                    },
+                    repo: repo,
+                    owner: owner,
+                    name: nameWithExt,
+                    data: fs.readFileSync(filePath) as unknown as string,
+                });
+            } catch (err) {
+                core.error(`Problem uploading ${filePath} as a release asset (${(err as Error).message}).`)
+            }
+        }
+    }
+}
