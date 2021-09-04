@@ -1,11 +1,24 @@
-name: 'Your name here'
-description: 'Provide a description here'
-author: 'Your name or organization here'
+name: 'auto-release'
+description: 'Generates a release with changelog when a new tag is pushed'
+author: 'MC-Machinations'
 inputs:
-  milliseconds: # change this
+  token:
     required: true
-    description: 'input description here'
-    default: 'default value if applicable'
+    description: repository token
+  draft:
+    required: false
+    description: Create a draft release
+    default: 'false'
+  pre-release:
+    required: false
+    description: Create a pre-release release
+    default: 'false'
+  title:
+    required: false
+    description: Title for release, defaults to the tag name
+  files:
+    required: false
+    description: Files to include in the release
 runs:
   using: 'node12'
   main: 'dist/index.js'
