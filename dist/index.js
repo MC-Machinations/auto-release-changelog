@@ -49,17 +49,17 @@ const getShortSHA = (sha) => {
 exports.getShortSHA = getShortSHA;
 var ConventionalCommitTypes;
 (function (ConventionalCommitTypes) {
-    ConventionalCommitTypes["feat"] = "Features";
-    ConventionalCommitTypes["fix"] = "Bug Fixes";
-    ConventionalCommitTypes["docs"] = "Documentation";
-    ConventionalCommitTypes["style"] = "Styles";
-    ConventionalCommitTypes["refactor"] = "Code Refactoring";
-    ConventionalCommitTypes["perf"] = "Performance Improvements";
-    ConventionalCommitTypes["test"] = "Tests";
-    ConventionalCommitTypes["build"] = "Builds";
-    ConventionalCommitTypes["ci"] = "Continuous Integration";
-    ConventionalCommitTypes["chore"] = "Chores";
-    ConventionalCommitTypes["revert"] = "Reverts";
+    ConventionalCommitTypes["feat"] = ":rocket: Features";
+    ConventionalCommitTypes["fix"] = ":wrench: Bug Fixes";
+    ConventionalCommitTypes["docs"] = ":book: Documentation";
+    ConventionalCommitTypes["style"] = ":crown: Styles";
+    ConventionalCommitTypes["refactor"] = ":twisted_rightwards_arrows: Code Refactoring";
+    ConventionalCommitTypes["perf"] = ":bangbang: Performance Improvements";
+    ConventionalCommitTypes["test"] = ":test_tube: Tests";
+    ConventionalCommitTypes["build"] = ":hammer: Builds";
+    ConventionalCommitTypes["ci"] = ":repeat: Continuous Integration";
+    ConventionalCommitTypes["chore"] = ":broom: Chores";
+    ConventionalCommitTypes["revert"] = ":leftwards_arrow_with_hook: Reverts";
 })(ConventionalCommitTypes || (ConventionalCommitTypes = {}));
 const getFormattedChangelogEntry = (parsedCommit) => {
     var _a;
