@@ -95,7 +95,7 @@ const getFormattedChangelogEntry = (parsedCommit) => {
     entry = `- ${sha}: ${parsedCommit.header} (${author})${prString}`;
     if (parsedCommit.type) {
         const scopeStr = parsedCommit.scope ? `**${parsedCommit.scope}**: ` : '';
-        entry = `- ${scopeStr}${parsedCommit.subject} - ${prString} ${sha}${issueString}`;
+        entry = `- ${scopeStr}${parsedCommit.subject} ${prString} - ${sha}${issueString}`;
     }
     return entry;
 };
@@ -107,7 +107,7 @@ const generateChangelogFromParsedCommits = (parsedCommits) => {
         .map((val) => getFormattedChangelogEntry(val))
         .reduce((acc, line) => `${acc}\n${line}`, '');
     if (breaking) {
-        changelog += '## Breaking Changes\n';
+        changelog += '## :bomb: Breaking Changes\n';
         changelog += breaking.trim();
     }
     for (const key of Object.keys(ConventionalCommitTypes)) {
@@ -116,7 +116,7 @@ const generateChangelogFromParsedCommits = (parsedCommits) => {
             .map((val) => getFormattedChangelogEntry(val))
             .reduce((acc, line) => `${acc}\n${line}`, '');
         if (clBlock) {
-            changelog += `\n\n## ${ConventionalCommitTypes[key]}\n`;
+            changelog += `\n\n### ${ConventionalCommitTypes[key]}\n`;
             changelog += clBlock.trim();
         }
     }
@@ -126,7 +126,7 @@ const generateChangelogFromParsedCommits = (parsedCommits) => {
         .map((val) => getFormattedChangelogEntry(val))
         .reduce((acc, line) => `${acc}\n${line}`, '');
     if (commits) {
-        changelog += '\n\n## Commits\n';
+        changelog += '\n\n### Commits\n';
         changelog += commits.trim();
     }
     return changelog.trim();
