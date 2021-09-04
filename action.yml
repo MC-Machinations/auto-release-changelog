@@ -21,4 +21,4 @@ inputs:
     description: Files to include in the release
 runs:
   using: 'node12'
-  main: 'dist/index.js'
+  main: 'dist/main.js'

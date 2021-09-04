@@ -203,7 +203,7 @@ export const getChangelog = async (
     return changelog;
 };
 
-async function run(): Promise<void> {
+export async function main(): Promise<void> {
     try {
 
         const context = new Context();
@@ -261,12 +261,10 @@ async function run(): Promise<void> {
     }
 }
 
-run();
-
 export async function uploadReleaseArtifacts(client: InstanceType<typeof GitHub>, repo: string, owner: string, releaseId: number, files: string[]): Promise<void> {
     core.startGroup("Uploading release artifacts")
     for (let file of files) {
-        const paths = await globby.globby(file);
+        const paths = await globby(file);
         if (paths.length === 0) {
             core.warning(`${file} doesn't match any files`)
         }
