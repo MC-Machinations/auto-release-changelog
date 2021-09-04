@@ -68,9 +68,6 @@ const getFormattedChangelogEntry = (parsedCommit: ParsedCommits): string => {
 
     let prString = '';
     prString = parsedCommit.extra.pullRequests.reduce((acc, pr) => {
-        // e.g. #1
-        // e.g. #1,#2
-        // e.g. ''
         if (acc) {
             acc += ',';
         } else {
