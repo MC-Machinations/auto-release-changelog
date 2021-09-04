@@ -1,5 +1,5 @@
 {
-  "name": "auto-release",
+  "name": "auto-release-changelog",
   "version": "0.0.0",
   "private": true,
   "description": "Generate automatic releases on new tag push",

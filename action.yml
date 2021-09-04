@@ -1,4 +1,4 @@
-name: 'auto-release'
+name: 'auto-release-changelog'
 description: 'Generates a release with changelog when a new tag is pushed'
 author: 'MC-Machinations'
 inputs:

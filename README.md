@@ -2,9 +2,9 @@
   <a href="https://github.com/actions/typescript-action/actions"><img alt="typescript-action status" src="https://github.com/actions/typescript-action/workflows/build-test/badge.svg"></a>
 </p>
 
-# auto-release
+# auto-release-changelog
 
-A fork of https://github.com/marvinpinto/actions/blob/master/packages/automatic-releases with further changelog customizations
+Based on [automatic-releases](https://github.com/marvinpinto/actions/blob/master/packages/automatic-releases) with further changelog customizations.
 
 ## arguments
 ```yaml
