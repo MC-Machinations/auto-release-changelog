@@ -15,6 +15,6 @@ jobs:
       - uses: ./
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          title: Test Project ${{ steps.vars.outputs.tag }}
+          title: auto-release-changelog ${{ steps.vars.outputs.tag }}
           files: |
             LICENSE
