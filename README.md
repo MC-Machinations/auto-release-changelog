@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://github.com/actions/typescript-action/actions"><img alt="typescript-action status" src="https://github.com/actions/typescript-action/workflows/build-test/badge.svg"></a>
+    <a href="https://github.com/MC-Machinations/auto-release-changelog/blob/main/LICENSE"><img alt="GitHub license" src="https://img.shields.io/github/license/MC-Machinations/auto-release-changelog"></a>
 </p>
 
 # auto-release-changelog
