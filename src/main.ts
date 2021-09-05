@@ -35,7 +35,15 @@ function parseArguments(): Arguments {
     return { token, draft, preRelease, title, files, skipPreReleases };
 }
 
-type ExtendedTag = components["schemas"]["tag"] & {
+type SimpleTag = {
+    name: string;
+    commit: {
+        sha: string;
+        url: string;
+    }
+}
+
+type ExtendedTag = SimpleTag & {
     semverTag: string;
 }
 
@@ -64,14 +72,15 @@ const searchForPreviousReleaseTag = async (
             core.debug(`Currently processing tag ${tag.name}`);
             const t = semverValid(tag.name);
             return {
-                ...tag,
+                name: tag.name,
+                commit: tag.commit,
                 semverTag: t,
             };
         })
         .filter((tag) => tag.semverTag !== null)
         .sort((a, b) => semverRcompare(a.semverTag!, b.semverTag!)) as ExtendedTag[];
 
-    core.info(`Finding previous tag from list: ${JSON.stringify(tagList)}`)
+    core.info(`Finding previous tag from list: ${JSON.stringify(tagList.map(tag => tag.name))}`)
     let previousReleaseTag = null;
     for (const tag of tagList) {
         if (semverLt(tag.semverTag, currentReleaseTag) && (!skipPreReleases || semverDiff(tag.semverTag, currentReleaseTag) !== "prerelease")) {
