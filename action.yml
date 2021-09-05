@@ -19,6 +19,9 @@ inputs:
   files:
     required: false
     description: Files to include in the release
+  skip-prereleases:
+    required: false
+    description: If enabled, when a new non-prerelease tag is pushed, the changelog will be created between the pushed tag, and the last non-prerelease tag
 runs:
   using: 'node12'
   main: 'dist/main.js'

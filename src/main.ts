@@ -9,6 +9,7 @@ import {components} from "@octokit/openapi-types"
 import semverValid from "semver/functions/valid"
 import semverRcompare from "semver/functions/rcompare"
 import semverLt from "semver/functions/lt"
+import semverDiff from "semver/functions/diff"
 import {generateChangelogFromParsedCommits, getChangelogOptions, isBreakingChange, ParsedCommits} from "./changelog"
 import {getClosedIssues} from "./graphql"
 import globby from "globby"
@@ -21,6 +22,7 @@ type Arguments = {
     preRelease: boolean;
     title: string;
     files: string[];
+    skipPreReleases: boolean;
 }
 
 function parseArguments(): Arguments {
@@ -29,7 +31,8 @@ function parseArguments(): Arguments {
     const preRelease = core.getBooleanInput("pre-release")
     const title = core.getInput("title")
     const files = core.getMultilineInput("files")
-    return { token, draft, preRelease, title, files};
+    const skipPreReleases = core.getBooleanInput("skip-prereleases")
+    return { token, draft, preRelease, title, files, skipPreReleases };
 }
 
 type ExtendedTag = components["schemas"]["tag"] & {
@@ -37,6 +40,7 @@ type ExtendedTag = components["schemas"]["tag"] & {
 }
 
 const searchForPreviousReleaseTag = async (
+    skipPreReleases: boolean,
     client: InstanceType<typeof GitHub>,
     currentReleaseTag: string,
     tagInfo: { owner: string, repo: string },
@@ -68,7 +72,7 @@ const searchForPreviousReleaseTag = async (
 
     let previousReleaseTag = null;
     for (const tag of tagList) {
-        if (semverLt(tag.semverTag, currentReleaseTag)) {
+        if (semverLt(tag.semverTag, currentReleaseTag) && (!skipPreReleases || semverDiff(tag.semverTag, currentReleaseTag) !== "prerelease")) {
             previousReleaseTag = tag;
             break;
         }
@@ -223,7 +227,7 @@ export async function main(): Promise<void> {
         core.startGroup("Determining release tags")
         const releaseTag = parseGitTagRef(context.ref);
 
-        const previousReleaseTag = await searchForPreviousReleaseTag(client, releaseTag, {
+        const previousReleaseTag = await searchForPreviousReleaseTag(args.skipPreReleases, client, releaseTag, {
             owner: context.repo.owner,
             repo: context.repo.repo,
         })

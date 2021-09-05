@@ -4,7 +4,8 @@
 
 # auto-release-changelog
 
-Based on [automatic-releases](https://github.com/marvinpinto/actions/blob/master/packages/automatic-releases) with further changelog customizations.
+Based on [automatic-releases](https://github.com/marvinpinto/actions/blob/master/packages/automatic-releases) with further changelog customizations.  
+Requires use of [semantic versioning](https://semver.org/) on tags
 
 ## arguments
 ```yaml
@@ -25,4 +26,7 @@ Based on [automatic-releases](https://github.com/marvinpinto/actions/blob/master
   files:
     required: false
     description: Files to include in the release
+  skip-prereleases:
+    required: false
+    description: If enabled, when a new non-prerelease tag is pushed, the changelog will be created between the pushed tag, and the last non-prerelease tag
 ```

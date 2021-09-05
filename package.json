@@ -1,6 +1,6 @@
 {
   "name": "auto-release-changelog",
-  "version": "0.0.0",
+  "version": "1.1.0",
   "private": true,
   "description": "Generate automatic releases on new tag push",
   "main": "dist/index.js",
