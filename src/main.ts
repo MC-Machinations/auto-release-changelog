@@ -51,6 +51,7 @@ const searchForPreviousReleaseTag = async (
             `The the current tag "${currentReleaseTag}" does not appear to conform to semantic versioning.`,
         );
     }
+    core.info(`Valid semver tag found: ${validSemver}`)
 
     const listTagsOptions = client.rest.repos.listTags.endpoint.merge({
         ...tagInfo,
@@ -70,6 +71,7 @@ const searchForPreviousReleaseTag = async (
         .filter((tag) => tag.semverTag !== null)
         .sort((a, b) => semverRcompare(a.semverTag!, b.semverTag!)) as ExtendedTag[];
 
+    core.info(`Finding previous tag from list: ${JSON.stringify(tagList)}`)
     let previousReleaseTag = null;
     for (const tag of tagList) {
         if (semverLt(tag.semverTag, currentReleaseTag) && (!skipPreReleases || semverDiff(tag.semverTag, currentReleaseTag) !== "prerelease")) {
@@ -77,6 +79,7 @@ const searchForPreviousReleaseTag = async (
             break;
         }
     }
+    core.info(`Previous tag to find commits between: ${previousReleaseTag}`)
 
     return previousReleaseTag;
 };
