@@ -100,7 +100,7 @@ const searchForPreviousReleaseTag = async (
             break;
         }
     }
-    core.info(`Previous tag to find commits between: ${previousReleaseTag}`)
+    core.info(`Previous tag to find commits between: ${JSON.stringify(previousReleaseTag)}`)
 
     return previousReleaseTag;
 };
