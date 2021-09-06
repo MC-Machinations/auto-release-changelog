@@ -10,6 +10,7 @@ import semverValid from "semver/functions/valid"
 import semverRcompare from "semver/functions/rcompare"
 import semverLt from "semver/functions/lt"
 import semverDiff from "semver/functions/diff"
+import semverPrerelease from "semver/functions/prerelease"
 import {generateChangelogFromParsedCommits, getChangelogOptions, isBreakingChange, ParsedCommits} from "./changelog"
 import {getClosedIssues} from "./graphql"
 import globby from "globby"
@@ -83,6 +84,17 @@ const searchForPreviousReleaseTag = async (
     core.info(`Finding previous tag from list: ${JSON.stringify(tagList.map(tag => tag.name))}`)
     let previousReleaseTag = null;
     for (const tag of tagList) {
+        if (semverLt(tag.semverTag, currentReleaseTag)) {
+            if (!skipPreReleases || semverDiff(tag.semverTag, currentReleaseTag) !== 'prerelease') {
+                previousReleaseTag = tag;
+                break;
+            } else {
+                if (semverPrerelease(tag.semverTag) != null) {
+                    previousReleaseTag = tag;
+                    break;
+                }
+            }
+        }
         if (semverLt(tag.semverTag, currentReleaseTag) && (!skipPreReleases || semverDiff(tag.semverTag, currentReleaseTag) !== "prerelease")) {
             previousReleaseTag = tag;
             break;
