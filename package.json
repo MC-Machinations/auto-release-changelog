@@ -24,7 +24,7 @@
     "@actions/github": "^5.0.0",
     "conventional-changelog-angular": "^5.0.12",
     "conventional-commits-parser": "^3.2.1",
-    "globby": "11.0.1",
+    "globby": "12.2.0",
     "semver": "^7.3.5",
     "terser-webpack-plugin": "4.2.3",
     "ts-loader": "6.2.1",
