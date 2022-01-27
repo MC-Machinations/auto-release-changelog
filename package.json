@@ -37,7 +37,7 @@
     "@typescript-eslint/parser": "^5.10.1",
     "encoding": "^0.1.13",
     "eslint": "^7.31.0",
-    "eslint-plugin-github": "^4.1.1",
+    "eslint-plugin-github": "^4.3.2",
     "eslint-plugin-jest": "^24.3.6",
     "eslint-plugin-prettier": "^4.0.0",
     "js-yaml": "^4.1.0",
