@@ -34,7 +34,7 @@
   "devDependencies": {
     "@types/node": "^17.0.12",
     "@types/semver": "^7.3.9",
-    "@typescript-eslint/parser": "^5.10.1",
+    "@typescript-eslint/parser": "^5.10.2",
     "encoding": "^0.1.13",
     "eslint": "^7.31.0",
     "eslint-plugin-github": "^4.3.2",
